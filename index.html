@@ -280,25 +280,50 @@ ______________________________
 	
  // 解锁并复制功能（兼容性增强）
     function unlockAndCopy(buttonText, url, inputId, correctCode) {
-      const input = document.getElementById(inputId).value;
+  // 获取用户输入的兑换码并去掉空格
+  const input = document.getElementById(inputId).value.trim();
 
-      if (input === correctCode) {
-        try {
-          // 使用现代 API
-          navigator.clipboard.writeText(url).then(() => {
-            alert(buttonText + ' 已解锁并复制成功！');
-          }).catch(() => {
-            // 降级到传统复制方法
-            fallbackCopyTextToClipboard(url, buttonText);
-          });
-        } catch (e) {
-          // Clipboard API 不支持时的处理
-          fallbackCopyTextToClipboard(url, buttonText);
-        }
-      } else {
-        alert('兑换码错误，请重新输入！');
-      }
+  if (input === correctCode) {
+    // 检查是否支持 clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert(buttonText + ' 已解锁并复制成功！');
+      }).catch((err) => {
+        console.error('复制失败，降级处理：', err);
+        fallbackCopyTextToClipboard(url, buttonText);
+      });
+    } else {
+      // 如果 clipboard API 不支持，降级到传统方法
+      fallbackCopyTextToClipboard(url, buttonText);
     }
+  } else {
+    alert('兑换码错误，请重新输入！');
+  }
+}
+
+function fallbackCopyTextToClipboard(text, buttonText) {
+  // 降级：使用 textarea 元素实现复制
+  const tempInput = document.createElement('textarea');
+  tempInput.value = text;
+  tempInput.style.position = 'fixed';
+  tempInput.style.left = '-9999px'; // 隐藏
+  document.body.appendChild(tempInput);
+  tempInput.select(); // 选中内容
+
+  try {
+    const success = document.execCommand('copy');
+    if (success) {
+      alert(buttonText + ' 已解锁并复制成功！（降级模式）');
+    } else {
+      throw new Error('execCommand 复制失败');
+    }
+  } catch (err) {
+    alert(`复制失败，请手动复制以下链接：\n${text}`);
+  } finally {
+    document.body.removeChild(tempInput); // 清理临时输入框
+  }
+}
+
 
     // 降级方法：使用 document.execCommand
     function fallbackCopyTextToClipboard(text, buttonText) {
